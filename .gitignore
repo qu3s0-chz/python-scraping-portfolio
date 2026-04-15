@@ -1,0 +1,6 @@
+.claude.json
+.gitconfig
+*.json
+__pycache__/
+*.pyc
+.env
