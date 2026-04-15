@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
+import argparse
 
 load_dotenv()
 API_KEY = os.getenv("SCRAPERAPI_KEY")
@@ -51,23 +52,37 @@ def scrape_yellowpages(search_term, location, pages=5):
     
     return all_leads
 
-# --- Configure your search here ---
-SEARCH_TERM = "hvac"
-LOCATION = "Tampa+FL"
-PAGES = 5
-
-leads = scrape_yellowpages(SEARCH_TERM, LOCATION, pages=PAGES)
-
-df = pd.DataFrame(leads)
-
-if df.empty:
-    print("No data captured")
-else:
+def clean_and_save(leads, search_term, location):
+    df = pd.DataFrame(leads)
+    
+    if df.empty:
+        print("No data captured")
+        return
+    
     df = df[df["phone"] != "N/A"]
     df = df[df["phone"] != ""]
     df = df.drop_duplicates(subset=["name"])
     df = df.reset_index(drop=True)
     
-    filename = f"{SEARCH_TERM}_{LOCATION}_leads.csv"
+    filename = f"{search_term}_{location}_leads.csv"
     df.to_csv(filename, index=False, encoding="utf-8")
     print(f"\nDone. {len(df)} clean leads saved to {filename}")
+    print(df[["name", "phone", "address"]].to_string())
+
+def main():
+    parser = argparse.ArgumentParser(description="Scrape Yellow Pages for business leads")
+    parser.add_argument("--search", required=True, help="Business type to search e.g. hvac")
+    parser.add_argument("--location", required=True, help="City and state e.g. Tampa+FL")
+    parser.add_argument("--pages", type=int, default=5, help="Number of pages to scrape (default 5)")
+    
+    args = parser.parse_args()
+    
+    print(f"\nSearching for: {args.search}")
+    print(f"Location: {args.location}")
+    print(f"Pages: {args.pages}\n")
+    
+    leads = scrape_yellowpages(args.search, args.location, args.pages)
+    clean_and_save(leads, args.search, args.location)
+
+if __name__ == "__main__":
+    main()
